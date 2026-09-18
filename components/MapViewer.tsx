@@ -112,7 +112,7 @@ const LAYER_CATEGORIES = [
     },
     {
         id: "ni_una_menos",
-        name: "Registros (Ni una menos)",
+        name: "Incidentes (Ni Una Repartidora Menos)",
         layers: [
             { id: "acoso", name: "Acoso y agresión", path: "/shapefiles/Ni una menos/Acoso y agresióin" },
             { id: "asaltos", name: "Asaltos", path: "/shapefiles/Ni una menos/Asaltos" },
