@@ -383,7 +383,8 @@ export default function MapViewer() {
                                 />
                             </div>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
-                                Datos usados de la Fiscalía General de Justicia CDMX
+                                Fuente: INEGI, Fiscalía General de Justicia de la Ciudad de México e incidentes reportados por "Ni 
+                                Una Repartidora Menos"
                             </p>
                         </div>
                     </div>
