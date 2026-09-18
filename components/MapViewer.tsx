@@ -122,7 +122,7 @@ const LAYER_CATEGORIES = [
     },
     {
         id: "socio_demograficas",
-        name: "Socio Demográficas",
+        name: "Sociodemográficos",
         layers: [
             { id: "marginacion", name: "Grado de Marginación", path: "/shapefiles/Socio demografico/GradoMarginación" },
             { id: "ageb", name: "AGEB CDMX", path: "/shapefiles/Socio demografico/ids_ageb_cdmx" }
