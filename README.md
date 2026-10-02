@@ -1,45 +1,55 @@
-# Visor de Mapas Shapefile
+# Visor Geoespacial CDMX – Mapa de riesgos
 
-Este proyecto permite visualizar archivos Shapefile (.shp) en un mapa interactivo web.
+Visor web interactivo con capas geográficas de la Ciudad de México: delitos, incidentes reportados por repartidoras y repartidores, infraestructura social e indicadores sociodemográficos.
 
-## Instrucciones para ejecutar
+Sitio publicado: https://mapa-de-riesgos-pd.vercel.app/
 
-Debido a restricciones de seguridad de los navegadores, esta aplicación debe ejecutarse a través de un servidor web local. No funcionará si solo abres el archivo `index.html` directamente (file://).
+## Capas
 
-### Opción 1: Usando Node.js (Recomendado)
-Si tienes Node.js instalado:
+| Grupo | Contenido |
+|---|---|
+| Delitos | Delitos a personas y delitos con vehículos implicados (Fiscalía General de Justicia de la CDMX) |
+| Incidentes (Ni Una Repartidora Menos) | Asaltos, intentos de asalto, fraudes y acoso y agresiones reportados por la comunidad |
+| Sociales | Biciestacionamientos, centros de justicia, estacionamientos para moto, Pilares, UT y Utopías |
+| Sociodemográficos | Grado de marginación y AGEB |
 
-1.  Abre una terminal en esta carpeta.
-2.  Ejecuta el comando:
-    ```powershell
-    npx -y serve
-    ```
-3.  Abre el enlace que aparece (usualmente `http://localhost:3000`).
+La capa base son los límites de las alcaldías (`09mun`). Las demás capas se activan desde el panel lateral.
 
-### Opción 2: Usando Python
-Si tienes Python instalado:
+## Cómo funciona
 
-1.  Abre una terminal en esta carpeta.
-2.  Ejecuta:
-    ```powershell
-    python -m http.server
-    ```
-3.  Ve a `http://localhost:8000` en tu navegador.
+- Aplicación Next.js 14 (React + TypeScript) con mapas en Leaflet.
+- Los shapefiles viven en `public/shapefiles/` y el navegador los lee directamente con `shpjs`. No hay servidor propio ni variables de entorno.
+- Toda la lógica del mapa y la lista de capas está en `components/MapViewer.tsx`.
+- Cada shapefile debe incluir su archivo `.prj`: de ahí se toma la proyección para colocarlo bien en el mapa (por ejemplo, `09mun` no está en latitud/longitud).
 
-## Archivos
-Los archivos Shapefile se encuentran en la carpeta `shapefiles/`.
-- **09mun**: Capa base estática (Municipios).
-- Otras capas son seleccionables mediante casillas de verificación.
+## Ejecutar en local
 
-### Opción 3: Versión Streamlit (Python)
-Si deseas utilizar Streamlit (por ejemplo, para desplegar en Streamlit Cloud):
+Requiere Node.js 18.17 o superior.
 
-1.  Instala las dependencias:
-    ```powershell
-    pip install -r requirements.txt
-    ```
-2.  Ejecuta la aplicación:
-    ```powershell
-    streamlit run streamlit_app.py
-    ```
+```bash
+npm install
+npm run dev
+```
 
+Abre http://localhost:3000. Para probar la versión de producción:
+
+```bash
+npm run build
+npm start
+```
+
+## Actualización automática de los incidentes
+
+Los incidentes salen del mapa de Google My Maps "Mapa de Riesgos CDMX". Un flujo de GitHub Actions (`.github/workflows/sync-mapa-riesgos.yml`) los mantiene al día:
+
+1. Corre cada 6 horas (hora UTC) o manualmente desde la pestaña **Actions → Run workflow**.
+2. `scripts/kml_to_shapefiles.py` descarga el KML público del mapa y genera cuatro shapefiles en `public/shapefiles/Ni una menos/`.
+3. La alcaldía de cada incidente se calcula por ubicación con los límites de `09mun`.
+
+```
+
+## Datos
+
+- Delitos: Fiscalía General de Justicia de la Ciudad de México.
+- Incidentes: reportes a "Ni Una Repartidora Menos".
+- Límites de alcaldías, AGEB y grado de marginación: INEGI

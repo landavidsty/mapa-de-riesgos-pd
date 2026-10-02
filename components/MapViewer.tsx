@@ -21,6 +21,10 @@ import {
 import L from "leaflet";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+const CARTO_KEY = process.env.NEXT_PUBLIC_CARTO_KEY;
+const BASEMAP_URL =
+    "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" +
+    (CARTO_KEY ? `?key=${CARTO_KEY}` : "");
 
 /** Utility for Tailwind class merging */
 function cn(...inputs: ClassValue[]) {
@@ -409,7 +413,7 @@ export default function MapViewer() {
                     >
                         <TileLayer
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                            url={BASEMAP_URL}
                         />
 
                         {baseLayer && (
