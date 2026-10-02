@@ -42,3 +42,6 @@ MANIFEST
 # OS generated files
 .DS_Store
 Thumbs.db
+# Archivos que genera Next.js al compilar
+.next/
+*.tsbuildinfo
