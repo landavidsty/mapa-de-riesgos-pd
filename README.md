@@ -45,39 +45,11 @@ Los incidentes salen del mapa de Google My Maps "Mapa de Riesgos CDMX". Un flujo
 1. Corre cada 6 horas (hora UTC) o manualmente desde la pestaña **Actions → Run workflow**.
 2. `scripts/kml_to_shapefiles.py` descarga el KML público del mapa y genera cuatro shapefiles en `public/shapefiles/Ni una menos/`.
 3. La alcaldía de cada incidente se calcula por ubicación con los límites de `09mun`.
-4. Si hubo cambios, el flujo los guarda en el repositorio y Vercel vuelve a publicar el sitio.
 
-Cada capa generada tiene las mismas columnas: `Calle`, `Incidencia`, `Alcaldia`, `Longitud`, `Latitud` y `Direccion`.
-
-Para que el flujo pueda guardar cambios, en **Settings → Actions → General → Workflow permissions** debe estar activada la opción *Read and write permissions*.
-
-Para ejecutar el script a mano:
-
-```bash
-pip install pyshp shapely pyproj
-python scripts/kml_to_shapefiles.py .
-```
-
-**Nombres de archivo.** El visor busca estas capas por nombre exacto: `Asaltos`, `Fraudes`, `Intento de asalto` y `Acoso y agresióin` (con esa ortografía). Si se renombra un archivo hay que cambiar también su ruta en `components/MapViewer.tsx`.
-
-## Agregar una capa nueva
-
-1. Copia el shapefile (`.shp`, `.shx`, `.dbf` y `.prj`) en una carpeta dentro de `public/shapefiles/`.
-2. En `components/MapViewer.tsx`, agrega una entrada al grupo que corresponda con su `id`, el `name` que se verá en pantalla y el `path` sin extensión, por ejemplo `/shapefiles/Social/Pilares`.
-3. Prueba en local y sube el cambio.
-
-## Estructura del repositorio
-
-```
-app/                 Páginas y estilos de Next.js
-components/          MapViewer.tsx: mapa, panel de capas y leyendas
-public/shapefiles/   Capas del mapa
-scripts/             Conversión del KML de My Maps a shapefile
-.github/workflows/   Sincronización automática de incidentes
 ```
 
 ## Datos
 
 - Delitos: Fiscalía General de Justicia de la Ciudad de México.
-- Incidentes: reportes de la comunidad en el mapa "Ni Una Repartidora Menos".
-- Límites de alcaldías, AGEB y grado de marginación: ver los metadatos de cada shapefile.
+- Incidentes: reportes a "Ni Una Repartidora Menos".
+- Límites de alcaldías, AGEB y grado de marginación: INEGI
