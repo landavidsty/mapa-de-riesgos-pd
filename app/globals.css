@@ -61,6 +61,29 @@ path.leaflet-interactive:focus {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Fichas Leaflet: el contenido también funciona para polígonos. */
+.map-feature-popup .leaflet-popup-content {
+  width: min(320px, calc(100vw - 64px)) !important;
+  margin: 16px;
+  max-height: min(420px, 65vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+.feature-card { color: #334155; font-family: var(--font-inter), sans-serif; overflow-wrap: anywhere; }
+.feature-card h3 { margin: 0 0 12px; padding-bottom: 10px; border-bottom: 2px solid #9d2148; color: #9d2148; font-size: 16px; font-weight: 750; }
+.feature-card dl { margin: 0; }
+.feature-row { padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
+.feature-row dt { font-size: 11px; color: #64748b; font-weight: 650; }
+.feature-row dd { margin: 3px 0 0; font-size: 13px; color: #0f172a; }
+.feature-row-highlight { padding: 10px; margin: 6px 0; background: #f8f1f4; border-radius: 8px; }
+.feature-row-highlight dd { font-weight: 750; color: #9d2148; }
+.feature-details { border-top: 1px solid #e2e8f0; margin-top: 12px; padding-top: 10px; }
+.feature-details summary { cursor: pointer; color: #9d2148; font-size: 12px; font-weight: 700; }
+.feature-details summary:focus-visible { outline: 2px solid #9d2148; outline-offset: 3px; }
+.feature-note { margin: 12px 0 0 !important; font-size: 11px; line-height: 1.6; color: #475569; }
+.feature-note a { color: #9d2148; text-decoration: underline; }
+
 @layer components {
   .btn-primary {
     @apply bg-mapPrimary text-white px-4 py-2 rounded-xl hover:bg-opacity-90 transition-all active:scale-95 font-medium shadow-md;
