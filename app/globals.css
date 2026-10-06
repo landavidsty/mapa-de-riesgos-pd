@@ -61,6 +61,40 @@ path.leaflet-interactive:focus {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Fichas Leaflet: el contenido también funciona para polígonos. */
+.map-feature-popup .leaflet-popup-content {
+  width: min(336px, calc(100vw - 72px)) !important;
+  margin: 20px;
+  max-height: min(460px, 65vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+.map-feature-popup .leaflet-popup-content-wrapper { border-radius: 6px; }
+.feature-card { color: #334155; font-family: var(--font-inter), Arial, sans-serif; overflow-wrap: anywhere; }
+.feature-card header { padding-bottom: 14px; margin-bottom: 8px; border-bottom: 1px solid #d6d6d6; }
+.feature-card h3 { margin: 0; color: #252525; font-size: 18px; font-weight: 600; line-height: 1.35; }
+.feature-kicker { margin: 0 0 5px !important; color: #6b6b6b; font-size: 11px; line-height: 1.4; }
+.feature-subtitle { margin: 5px 0 0 !important; color: #595959; font-size: 13px; line-height: 1.4; }
+.feature-card dl { margin: 0; }
+.feature-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 12px; padding: 9px 0; border-bottom: 1px solid #ededed; }
+.feature-row:last-child { border-bottom: 0; }
+.feature-row dt { font-size: 12px; color: #666; font-weight: 400; }
+.feature-row dd { margin: 0; font-size: 13px; color: #252525; }
+.feature-row-highlight { display: block; padding: 11px 0 15px; }
+.feature-row-highlight dd { margin-top: 3px; font-size: 18px; font-weight: 600; color: #9d2148; }
+.feature-card-data .feature-row-highlight dd { font-size: 24px; }
+.feature-details { border-top: 1px solid #d6d6d6; margin-top: 12px; padding-top: 10px; }
+.feature-details summary { cursor: pointer; color: #444; font-size: 12px; font-weight: 500; }
+.feature-details summary:focus-visible { outline: 2px solid #9d2148; outline-offset: 3px; }
+.feature-details[open] summary { margin-bottom: 6px; }
+.feature-indicators .feature-row { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; }
+.feature-indicators dd { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.feature-footer { margin-top: 16px; padding-top: 10px; border-top: 1px solid #d6d6d6; }
+.feature-note { margin: 7px 0 0 !important; font-size: 11px; line-height: 1.5; color: #6b6b6b; }
+.feature-note:first-child { margin-top: 0 !important; }
+.feature-note a { color: #9d2148; text-decoration: underline; }
+
 @layer components {
   .btn-primary {
     @apply bg-mapPrimary text-white px-4 py-2 rounded-xl hover:bg-opacity-90 transition-all active:scale-95 font-medium shadow-md;

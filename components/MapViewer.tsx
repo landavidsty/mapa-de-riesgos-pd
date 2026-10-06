@@ -19,6 +19,7 @@ import {
     Filter
 } from "lucide-react";
 import L from "leaflet";
+import { buildFeaturePopup, getChoroplethLabel, getCrimePeriod, TEMPORAL_EXPLANATION } from "@/lib/layer-presentation";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 const CARTO_KEY = process.env.NEXT_PUBLIC_CARTO_KEY;
@@ -48,8 +49,7 @@ const CHOROPLETH_CONFIG: Record<string, any> = {
             "Medio": "#d15c7a",
             "Alto": "#e17061",
             "Muy alto": "#9bb2c0",
-            "Sin información": "#ffffff",
-            "Sin informacin": "#ffffff"
+            "Sin información": "#ffffff"
         },
         legendTitle: "Estratos IDS",
         headerTitle: "Índice de Desarrollo Social (IDS) de la Ciudad de México por AGEB, 2020"
@@ -71,26 +71,26 @@ const CHOROPLETH_CONFIG: Record<string, any> = {
 const LAYER_CATEGORIES = [
     {
         id: "sociales",
-        name: "Sociales",
+        name: "Servicios e infraestructura social",
         layers: [
             { id: "biciestacionamientos", name: "Biciestacionamientos", path: "/shapefiles/Social/Biciestacionamientos_Final" },
-            { id: "centros_justicia", name: "Centros de justicia", path: "/shapefiles/Social/Centros_de_justicia" },
-            { id: "motos", name: "Estacionamientos Moto", path: "/shapefiles/Social/Estacionamientos_Moto" },
-            { id: "pilares", name: "Pilares", path: "/shapefiles/Social/Pilares" },
-            { id: "ut", name: "UT", path: "/shapefiles/Social/UT" },
-            { id: "utopias", name: "Utopias", path: "/shapefiles/Social/utopias" }
+            { id: "centros_justicia", name: "Centros de Justicia para las Mujeres", path: "/shapefiles/Social/Centros_de_justicia" },
+            { id: "motos", name: "Estacionamientos para motocicletas", path: "/shapefiles/Social/Estacionamientos_Moto" },
+            { id: "pilares", name: "PILARES", path: "/shapefiles/Social/Pilares" },
+            { id: "ut", name: "Unidades Territoriales Siempre Vivas", path: "/shapefiles/Social/UT" },
+            { id: "utopias", name: "Utopías", path: "/shapefiles/Social/utopias" }
         ]
     },
     {
         id: "delitos",
-        name: "Delitos",
+        name: "Delitos registrados — 2025",
         subcategories: [
             {
                 id: "delitos_personas",
-                name: "Delitos a personas",
+                name: "Delitos contra personas, viviendas y negocios",
                 layers: [
-                    { id: "homicidios", name: "Homicidios", path: "/shapefiles/Delitos/Delitos a personas/Homicidios" },
-                    { id: "robo_casa", name: "Robo a casa habitación", path: "/shapefiles/Delitos/Delitos a personas/ROBO A CASA HABITACIÓN" },
+                    { id: "homicidios", name: "Homicidios dolosos", path: "/shapefiles/Delitos/Delitos a personas/Homicidios" },
+                    { id: "robo_casa", name: "Robo a casa habitación con violencia", path: "/shapefiles/Delitos/Delitos a personas/ROBO A CASA HABITACIÓN" },
                     { id: "robo_cuenta", name: "Robo a cuentahabiente", path: "/shapefiles/Delitos/Delitos a personas/ROBO A CUENTAHABIENTE" },
                     { id: "robo_negocio", name: "Robo a negocio con violencia", path: "/shapefiles/Delitos/Delitos a personas/ROBO A NEGOCIO CON VIOLENCIA" },
                     { id: "violaciones", name: "Violaciones", path: "/shapefiles/Delitos/Delitos a personas/VIOLACIONES" }
@@ -98,7 +98,7 @@ const LAYER_CATEGORIES = [
             },
             {
                 id: "delitos_vehiculos",
-                name: "Delitos con vehículos implicados",
+                name: "Robos en transporte y de vehículos",
                 layers: [
                     { id: "robo_pasajero_microbus", name: "Robo a pasajero en microbús", path: "/shapefiles/Delitos/Delitos con vehiculos implicados/ROBO A PASAJERO A BORDO DE MICROBUS" },
                     { id: "robo_pasajero_taxi", name: "Robo a pasajero en taxi", path: "/shapefiles/Delitos/Delitos con vehiculos implicados/ROBO A PASAJERO A BORDO DE TAXI" },
@@ -109,7 +109,7 @@ const LAYER_CATEGORIES = [
                     { id: "robo_moto_sin_violencia", name: "Robo de motocicleta sin violencia", path: "/shapefiles/Delitos/Delitos con vehiculos implicados/ROBO DE MOTOCICLETA SIN VIOLENCIA" },
                     { id: "robo_vehiculo_particular_violencia", name: "Robo de vehículo particular con violencia", path: "/shapefiles/Delitos/Delitos con vehiculos implicados/ROBO DE VEHICULO DE SERVICIO PARTICULAR CON VIOLENCIA" },
                     { id: "robo_vehiculo_publico_sin_violencia", name: "Robo de vehículo público sin violencia", path: "/shapefiles/Delitos/Delitos con vehiculos implicados/ROBO DE VEHICULO DE SERVICIO PÚBLICO SIN VIOLENCIA" },
-                    { id: "robo_vehiculo", name: "Robo de vehículo", path: "/shapefiles/Delitos/Delitos con vehiculos implicados/ROBO DE VEHICULO" }
+                    { id: "robo_vehiculo", name: "Robo de vehículo — total", path: "/shapefiles/Delitos/Delitos con vehiculos implicados/ROBO DE VEHICULO" }
                 ]
             }
         ]
@@ -126,10 +126,10 @@ const LAYER_CATEGORIES = [
     },
     {
         id: "socio_demograficas",
-        name: "Sociodemográficos",
+        name: "Indicadores sociodemográficos",
         layers: [
-            { id: "marginacion", name: "Grado de Marginación", path: "/shapefiles/Socio demografico/GradoMarginación" },
-            { id: "ageb", name: "AGEB CDMX", path: "/shapefiles/Socio demografico/ids_ageb_cdmx" }
+            { id: "marginacion", name: "Marginación por colonia — 2020", path: "/shapefiles/Socio demografico/GradoMarginación" },
+            { id: "ageb", name: "IDS por AGEB - 2020", path: "/shapefiles/Socio demografico/ids_ageb_cdmx" }
         ]
     }
 ];
@@ -142,12 +142,11 @@ function Legend({ config }: { config: any }) {
             <h3 className="text-sm font-black text-[#9D2148] mb-5 tracking-tight">{config.legendTitle}</h3>
             <div className="space-y-4">
                 {Object.entries(config.mapping).map(([label, color]: [string, any]) => {
-                    if (label.includes("informaci")) return null;
                     return (
                         <div key={label} className="flex items-center gap-4 group cursor-default">
                             <div
                                 className="w-6 h-6 rounded shadow-sm transition-transform ring-1 ring-black/5"
-                                style={{ backgroundColor: color }}
+                                style={{ backgroundColor: color, border: label === "Sin información" ? "1px solid #94a3b8" : undefined }}
                             ></div>
                             <span className="text-sm font-semibold text-[#9D2148] transition-colors">{label}</span>
                         </div>
@@ -319,10 +318,11 @@ export default function MapViewer() {
 
                                     {openCategories[category.id] && (
                                         <div className="mt-2 ml-4 pl-8 space-y-5 py-2 animate-slide-in-from-top">
+                                            {category.id === "delitos" && <p className="text-xs leading-relaxed text-slate-600">{TEMPORAL_EXPLANATION}</p>}
                                             {category.layers?.map((layer: any) => (
                                                 <div key={layer.id} className="flex items-center gap-4 group/item cursor-pointer" onClick={() => togglePredefinedLayer(layer)}>
                                                     <div className={cn(
-                                                        "w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
+                                                        "w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-all",
                                                         activePredefined[layer.id]
                                                             ? "bg-[#C70039] border-[#C70039] shadow-sm"
                                                             : "border-slate-300 group-hover/item:border-slate-400"
@@ -347,7 +347,7 @@ export default function MapViewer() {
                                                         {sub.layers.map((layer: any) => (
                                                             <div key={layer.id} className="flex items-center gap-4 group/item cursor-pointer" onClick={() => togglePredefinedLayer(layer)}>
                                                                 <div className={cn(
-                                                                    "w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
+                                                                    "w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-all",
                                                                     activePredefined[layer.id]
                                                                         ? "bg-[#C70039] border-[#C70039] shadow-sm"
                                                                         : "border-slate-300 group-hover/item:border-slate-400"
@@ -361,6 +361,7 @@ export default function MapViewer() {
                                                                     activePredefined[layer.id] ? "text-[#9D2148]" : "text-[#9D2148]/70 group-hover/item:text-[#9D2148]"
                                                                 )}>
                                                                     {layer.name}
+                                                                    <span className="block mt-1 text-xs font-normal text-slate-500">{getCrimePeriod(layer.id)}</span>
                                                                 </span>
                                                             </div>
                                                         ))}
@@ -387,8 +388,7 @@ export default function MapViewer() {
                                 />
                             </div>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
-                                Fuente: INEGI, Fiscalía General de Justicia de la Ciudad de México e incidentes reportados por "Ni 
-                                Una Repartidora Menos"
+                                Las capas de delitos representan registros de Fiscalía. Los incidentes de Ni Una Repartidora Menos son reportes de la comunidad. Los puntos no representan una probabilidad calculada de sufrir un delito.
                             </p>
                         </div>
                     </div>
@@ -435,7 +435,7 @@ export default function MapViewer() {
                                 style={(feature) => {
                                     if (CHOROPLETH_CONFIG[layer.id]) {
                                         const config = CHOROPLETH_CONFIG[layer.id];
-                                        const val = feature?.properties?.[config.column] || "Sin información";
+                                        const val = getChoroplethLabel(layer.id, feature?.properties ?? {}, config.column);
                                         return {
                                             fillColor: config.mapping[val] || "#ffffff",
                                             weight: 1,
@@ -463,23 +463,10 @@ export default function MapViewer() {
                                     });
                                 }}
                                 onEachFeature={(feature, leafletLayer) => {
-                                    if (feature.properties) {
-                                        const content = Object.entries(feature.properties)
-                                            .map(([k, v]) => `
-                                                <div class="flex justify-between gap-4 py-1 border-b border-slate-50 last:border-0">
-                                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">${k}</span>
-                                                    <span class="text-[11px] font-bold text-slate-700">${v}</span>
-                                                </div>
-                                            `).join("");
-                                        leafletLayer.bindPopup(`
-                                            <div class="p-2 min-w-[200px] font-inter">
-                                                <div class="mb-3 pb-2 border-b border-slate-100">
-                                                    <h4 class="text-xs font-black text-mapPrimary uppercase tracking-widest">Información Detallada</h4>
-                                                </div>
-                                                <div class="space-y-1">${content}</div>
-                                            </div>
-                                        `);
-                                    }
+                                    leafletLayer.bindPopup(
+                                        buildFeaturePopup(layer.id, layer.name, feature.properties ?? {}),
+                                        { className: "map-feature-popup", minWidth: 240, maxWidth: 360, maxHeight: 420 }
+                                    );
                                 }}
                             />
                         ))}
