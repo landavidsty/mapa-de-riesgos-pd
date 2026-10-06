@@ -15,15 +15,26 @@ Las etiquetas usan FECHA DE INICIO y la tabla proporcionada, que incluye casos s
 
 ## Definiciones pendientes
 
-No pudo confirmarse en el diccionario de **esta versión de IDS por AGEB** el significado preciso, unidad y sentido de `ids_ccevj`, `ids_csj`, `ids_caej`, `ids_ctelj`, `ids_cbdj`, `ids_rei`, `ids_cassi`, `ids_casi`, ni la definición de `pobres_tot`. Los nueve campos siguen disponibles con códigos originales en Detalles técnicos. No se describe `pobres_tot` como pobreza multidimensional ni se convierte un índice a porcentaje. Ver componentes del IDS señala expresamente el pendiente; no propone interpretaciones sin verificar.
+No pudo confirmarse en el diccionario de **esta versión de IDS por AGEB** el significado preciso, unidad y sentido de `ids_ccevj`, `ids_csj`, `ids_caej`, `ids_ctelj`, `ids_cbdj`, `ids_rei`, `ids_cassi`, `ids_casi`, ni la definición de `pobres_tot`. Los nueve campos permanecen en los archivos de datos, pero se omiten de toda la ficha, incluidos los desplegables. No se describe `pobres_tot` como pobreza multidimensional ni se convierte un índice a porcentaje. No se muestra una sección de componentes sin contenido documentado.
 
-En marginación quedan pendientes de contraste específico con el diccionario de la capa: `POBTOT`, `P6A14NAE`, `PSDSS`, `OVHAC`, `OVSREF`, `OVSINT`, `OVSCEL`, así como la unidad y sentido precisos de `IM_2020` e `IMN_2020`. Se mantienen sus códigos y valores originales en Ver indicadores adicionales; no se añaden unidades supuestas. Identificadores, claves y campos geométricos se conservan en Detalles técnicos.
+En marginación quedan pendientes de contraste específico con el diccionario de la capa: `POBTOT`, `P6A14NAE`, `PSDSS`, `OVHAC`, `OVSREF`, `OVSINT`, `OVSCEL`, así como la unidad y sentido precisos de `IM_2020` e `IMN_2020`. Los indicadores pendientes permanecen en los archivos de datos y se omiten de la ficha. Sólo se muestran los cinco porcentajes con definición documentada. La clave de colonia se muestra con una etiqueta comprensible; no se exponen identificadores internos ni campos geométricos.
 
 ## Comportamiento y validación
 
-- Fichas separadas para servicios, delitos, comunidad, IDS y marginación; campos principales sólo cuando existen en el registro. Datos originales adicionales accesibles en secciones desplegables.
+- Fichas separadas para servicios, delitos, comunidad, IDS y marginación; campos principales sólo cuando existen en el registro. Sólo los datos adicionales con significado documentado son accesibles en secciones desplegables.
 - Nulos, cadenas vacías y números no finitos se muestran como Sin información. Cero y falso no se consideran ausentes. Las fechas de inicio de carpeta y hechos se muestran por separado.
 - Todos los textos incorporados al HTML se escapan. Las claves no se convierten a números; las fechas se formatean en UTC para evitar cambios de día.
 - IDS: tres decimales; población con separador de miles. La clasificación y colores originales se conservan. Un IDS nulo se muestra blanco/Sin información, sin convertirse en cero. La leyenda contiene cinco niveles y una única entrada Sin información con borde gris.
 - Secciones largas con desplazamiento, ajuste de palabras y desplegables nativos utilizables con teclado.
 - Verificación automatizada de la igualdad byte por byte de public/ y del inventario de IDs/rutas, pruebas de fichas con todos los registros y pruebas específicas de escape HTML, ceros, nulos, fechas y claves. Compilación Next.js con verificación de tipos.
+
+## Ajuste de fichas
+
+Esta revisión parte de `fc002db483313386b3ab0365e1620b770d518af9`, en `mejorar-fichas-etiquetas-2026-10-05`.
+
+- Diseño de fichas con tipografía normal, bordes discretos y jerarquía de título, zona y nivel; sin bloques de color decorativos.
+- IDS: nivel, valor con tres decimales, población, alcaldía y claves geográficas documentadas. Se retiran de la ficha los nueve campos aún no definidos.
+- Marginación: colonia y alcaldía en el encabezado, grado destacado y cinco porcentajes documentados en Indicadores disponibles. Los porcentajes pequeños no se redondean a cero.
+- Se retiran de toda ficha de PILARES los campos de estatus y región. En Utopías no se muestran coordenadas ni el campo ESTADO.
+- El renderizador usa una lista de campos documentados; no incluye un volcado automático de códigos desconocidos.
+- Todos los cambios afectan únicamente a la presentación. Los archivos de public/, los IDs, las rutas de capas y los datos geográficos permanecen iguales.

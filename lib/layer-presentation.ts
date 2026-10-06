@@ -85,18 +85,42 @@ function details(title: string, content: string): string {
 function sourceLink(label: string, url: string): string {
     return `<p class="feature-note"><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a></p>`;
 }
+function percentage(value: unknown): string {
+    if (isMissing(value)) return "Sin información";
+    const parsed = typeof value === "number" ? value : Number(String(value).trim());
+    if (!Number.isFinite(parsed)) return "Sin información";
+    // Keep small nonzero percentages visible instead of rounding them to zero.
+    return `${new Intl.NumberFormat("es-MX", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: parsed !== 0 && Math.abs(parsed) < 0.01 ? 6 : 2
+    }).format(parsed)} %`;
+}
 
 // Only mappings whose meaning AND percentage unit are corroborated in official
 // CONAPO 2020 documentation and the SEMARNAT field dictionary are used here.
-// Other indicators retain their original names until their dictionary is checked.
+// Indicators without a documented meaning are not included in the popup.
 const VERIFIED_MARGIN_PERCENTAGES: Record<string, string> = {
-    SBASC: "Población de 15 años o más sin educación básica",
-    OVSDE: "Ocupantes de viviendas particulares sin drenaje ni excusado",
-    OVSEE: "Ocupantes de viviendas particulares sin energía eléctrica",
-    OVSAE: "Ocupantes de viviendas particulares sin agua entubada",
-    OVPT: "Ocupantes de viviendas particulares con piso de tierra"
+    SBASC: "Sin educación básica (15 años o más)",
+    OVSDE: "Sin drenaje ni excusado",
+    OVSEE: "Sin energía eléctrica",
+    OVSAE: "Sin agua entubada",
+    OVPT: "Piso de tierra"
 };
-const OTHER_MARGIN_INDICATORS = ["POBTOT", "P6A14NAE", "PSDSS", "OVHAC", "OVSREF", "OVSINT", "OVSCEL", "IM_2020", "IMN_2020"];
+
+// Explicit labels prevent undocumented database fields from leaking into details.
+const DOCUMENTED_DETAILS: Array<[string[], string]> = [
+    [["ID_CI"], "Identificador de la carpeta"],
+    [["ID", "CLAVE_ID"], "Identificador del registro"],
+    [["cvegeo"], "Clave geográfica del AGEB"],
+    [["cve_ageb"], "Clave del AGEB"],
+    [["CVE_COL"], "Clave de la colonia"],
+    [["FECHA_INI", "FECHA DE INICIO"], "Fecha de inicio de la carpeta"],
+    [["FECHA_HEC", "FECHA DE LOS HECHOS"], "Fecha de los hechos"],
+    [["HORA_INI"], "Hora de inicio de la carpeta"],
+    [["HORA_HEC"], "Hora de los hechos"],
+    [["CALLE_1"], "Calle principal"],
+    [["CALLE_2"], "Calle secundaria"]
+];
 
 /** Presentation only: no source feature, property, geometry or layer is mutated. */
 export function buildFeaturePopup(id: string, name: string, props: Properties): string {
@@ -119,6 +143,15 @@ export function buildFeaturePopup(id: string, name: string, props: Properties): 
     let main = "";
     let extra = "";
     let notes = "";
+    let kicker = "";
+    let subtitle = "";
+    const dataCard = id === "ageb" || id === "marginacion";
+    const headerValue = (aliases: string[], formatter: (value: unknown) => string = code): string => {
+        const key = find(aliases);
+        if (key === undefined || isMissing(props[key])) return "";
+        used.add(key);
+        return formatter(props[key]);
+    };
 
     if (CRIME_IDS.has(id)) {
         main += pick(["DELITO"], "Delito", id === "robo_cuenta" ? value => isMissing(value) ? "Sin información" : "Robo a cuentahabiente al salir del cajero con violencia" : undefined, true);
@@ -137,47 +170,53 @@ export function buildFeaturePopup(id: string, name: string, props: Properties): 
         main += pick(["NOMBRE", "NOMBRE_PIL", "ESTACIONAM", "PLAZA_COME", "IZTAPALAPA"], "Nombre del lugar", undefined, true);
         main += pick(["DIRECCION", "DOMICILIO"], "Dirección");
         main += pick(["ALCALDIA"], "Alcaldía");
-        main += pick(["ESTATUS"], "Estatus registrado");
-        main += pick(["ESTADO"], "Referencia de ubicación");
         main += pick(["TIPO"], "Tipo de lugar");
-        main += pick(["REGION"], "Región");
     } else if (COMMUNITY_IDS.has(id)) {
         main += pick(["Incidencia", "Incidente"], "Incidente reportado", undefined, true);
         main += pick(["Direccion"], "Dirección reportada");
-        main += pick(["Calle"], "Calle o referencia");
+        main += pick(["Calle"], "Calle");
         main += pick(["Colonia"], "Colonia");
         main += pick(["Alcaldia"], "Alcaldía");
         main += pick(["Fecha"], "Fecha del reporte", formatDate);
         notes += paragraph("Reportes de la comunidad recopilados por Ni Una Repartidora Menos. Esta capa es distinta de las carpetas de investigación de Fiscalía.");
         notes += paragraph("Los puntos representan reportes, no una probabilidad calculada de sufrir un delito.");
     } else if (id === "ageb") {
-        title = "Desarrollo social del AGEB";
-        main += pick(["e_idsm"], "Nivel de desarrollo social", () => getChoroplethLabel(id, props, "e_idsm"), true);
-        main += pick(["ids"], "Índice de Desarrollo Social (IDS)", value => number(value, 3));
+        title = "Desarrollo social";
+        kicker = "IDS por AGEB · 2020";
+        const agebCode = headerValue(["cve_ageb"]);
+        const municipality = headerValue(["cve_mun"], alcaldia);
+        subtitle = [agebCode ? `AGEB ${agebCode}` : "", municipality].filter(Boolean).join(" · ");
+        main += row("Nivel de desarrollo social", getChoroplethLabel(id, props, "e_idsm"), true);
+        main += pick(["ids"], "Valor del IDS", value => number(value, 3));
+        const levelKey = find(["e_idsm"]);
+        if (levelKey !== undefined) used.add(levelKey);
         main += pick(["pobtotal"], "Población total", value => isMissing(value) ? "Sin información" : `${number(value)} personas`);
-        main += pick(["cve_mun"], "Alcaldía", alcaldia);
-        main += pick(["cvegeo"], "Clave geográfica del AGEB", code);
-        main += row("Año de referencia", "2020");
-        main += row("Fuente", "Evalúa CDMX, con datos del Censo 2020 de INEGI");
-        extra += details("Ver componentes del IDS", paragraph("Las definiciones, unidades y sentido de los componentes de esta versión aún no han podido confirmarse en su diccionario oficial. Sus valores se conservan con el código original en Detalles técnicos."));
-        notes += paragraph("El IDS reúne dimensiones de vivienda, servicios y condiciones sociales. Sus índices se muestran en su escala original, sin convertirlos a porcentajes. Un AGEB no equivale necesariamente a una colonia.");
-        notes += sourceLink("Consultar documentación de Evalúa CDMX", "https://datos.cdmx.gob.mx/dataset/indice-de-desarrollo-social-de-la-ciudad-de-mexico-2020");
-        // pobres_tot remains in technical details: no unverified poverty label.
+        notes += paragraph("El IDS resume condiciones de desarrollo social. Un AGEB es un área geoestadística y no equivale necesariamente a una colonia.");
+        notes += paragraph("Fuente: Evalúa CDMX, con datos del Censo 2020 de INEGI.");
+        notes += sourceLink("Fuente y metodología", "https://datos.cdmx.gob.mx/dataset/indice-de-desarrollo-social-de-la-ciudad-de-mexico-2020");
     } else if (id === "marginacion") {
-        main += pick(["COLONIA"], "Colonia", undefined, true);
-        const municipality = find(["NOM_MUN"]);
-        main += municipality !== undefined ? pick(["NOM_MUN"], "Alcaldía") : pick(["CVE_MUN", "MUN"], "Alcaldía", alcaldia);
+        kicker = "Marginación por colonia · 2020";
+        title = headerValue(["COLONIA"]) || "Colonia sin nombre";
+        subtitle = headerValue(["NOM_MUN"]) || headerValue(["CVE_MUN", "MUN"], alcaldia);
         main += pick(["GM_2020"], "Grado de marginación", normalizeLevel, true);
-        main += row("Año de referencia", "2020");
         let indicators = "";
         for (const [field, label] of Object.entries(VERIFIED_MARGIN_PERCENTAGES)) {
-            indicators += pick([field], `${label} (%)`, value => isMissing(value) ? "Sin información" : `${number(value, 2)} %`);
+            indicators += pick([field], label, percentage);
         }
-        for (const field of OTHER_MARGIN_INDICATORS) indicators += pick([field], field);
-        if (indicators) extra += details("Ver indicadores adicionales", `<dl>${indicators}</dl>` + paragraph("Los indicadores con etiqueta (%) están expresados en porcentajes. Los demás conservan su código y escala originales mientras se verifica su definición específica en esta capa."));
-        notes += sourceLink("Consultar documentación de marginación 2020 (CONAPO)", "https://www.gob.mx/conapo/documentos/indices-de-marginacion-2020-284372");
+        if (indicators) extra += details("Indicadores disponibles", `<dl class="feature-indicators">${indicators}</dl>` + paragraph("Educación: porcentaje de población de 15 años o más. Vivienda y servicios: porcentaje de ocupantes de viviendas particulares."));
+        notes += paragraph("El grado de marginación clasifica las condiciones de desventaja social de la colonia.");
+        notes += sourceLink("Metodología de marginación 2020 · CONAPO", "https://www.gob.mx/conapo/documentos/indices-de-marginacion-2020-284372");
     }
-    const technical = keys.filter(key => !used.has(key) || /^(cve|clave|id|objectid|fid|ct_|cp$|mun$|loc$|sun_)/i.test(key) || (id === "robo_cuenta" && key === "DELITO")).map(key => row(key, originalValue(key, props[key]))).join("");
-    if (technical) extra += details("Detalles técnicos", `<dl>${technical}</dl>`);
-    return `<article class="feature-card" aria-label="${escapeHtml(title)}"><header><h3>${escapeHtml(title)}</h3></header><dl>${main}</dl>${extra}${notes}</article>`;
+    let technical = "";
+    for (const [aliases, label] of DOCUMENTED_DETAILS) {
+        const key = find(aliases);
+        if (key !== undefined && !used.has(key)) technical += pick(aliases, label);
+    }
+    if (id !== "utopias") {
+        technical += pick(["LATITUD", "Latitude", "COORD_Y"], "Latitud", value => number(value, 6));
+        technical += pick(["LONGITUD", "Longitude", "COORD_X"], "Longitud", value => number(value, 6));
+    }
+    if (technical) extra += details(dataCard ? "Identificación geográfica" : "Detalles del registro", `<dl>${technical}</dl>`);
+    const heading = `${kicker ? `<p class="feature-kicker">${escapeHtml(kicker)}</p>` : ""}<h3>${escapeHtml(title)}</h3>${subtitle ? `<p class="feature-subtitle">${escapeHtml(subtitle)}</p>` : ""}`;
+    return `<article class="feature-card${dataCard ? " feature-card-data" : ""}" aria-label="${escapeHtml(title)}"><header>${heading}</header><dl>${main}</dl>${extra}${notes ? `<footer class="feature-footer">${notes}</footer>` : ""}</article>`;
 }
