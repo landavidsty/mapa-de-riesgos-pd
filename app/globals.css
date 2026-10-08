@@ -16,7 +16,7 @@ body {
   font-family: var(--font-inter);
 }
 
-/* Base Leaflet overrides */
+/* Ajustes de Leaflet. */
 .leaflet-container {
   height: 100vh;
   width: 100%;
@@ -28,7 +28,7 @@ path.leaflet-interactive:focus {
   outline: none !important;
 }
 
-/* Scrollbar Customization */
+/* Barras de desplazamiento. */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -46,7 +46,7 @@ path.leaflet-interactive:focus {
   background: rgba(0, 0, 0, 0.2);
 }
 
-/* Glassmorphism Utilities */
+/* Paneles con transparencia. */
 .glass-panel {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
@@ -54,14 +54,7 @@ path.leaflet-interactive:focus {
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-.dark-glass-panel {
-  background: rgba(15, 23, 42, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Fichas Leaflet: el contenido también funciona para polígonos. */
+/* Fichas del mapa. */
 .map-feature-popup .leaflet-popup-content {
   width: min(336px, calc(100vw - 72px)) !important;
   margin: 20px;

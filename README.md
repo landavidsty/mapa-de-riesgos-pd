@@ -1,55 +1,36 @@
-# Visor Geoespacial CDMX – Mapa de riesgos
+# Visor Geoespacial CDMX
 
-Visor web interactivo con capas geográficas de la Ciudad de México: delitos, incidentes reportados por repartidoras y repartidores, infraestructura social e indicadores sociodemográficos.
+Mapa de delitos, reportes comunitarios, servicios e indicadores sociodemográficos de la Ciudad de México.
 
-Sitio publicado: https://mapa-de-riesgos-pd.vercel.app/
+Sitio: https://mapa-de-riesgos-pd.vercel.app/
 
-## Capas
+## Datos
 
-| Grupo | Contenido |
-|---|---|
-| Delitos | Delitos a personas y delitos con vehículos implicados (Fiscalía General de Justicia de la CDMX) |
-| Incidentes (Ni Una Repartidora Menos) | Asaltos, intentos de asalto, fraudes y acoso y agresiones reportados por la comunidad |
-| Sociales | Biciestacionamientos, centros de justicia, estacionamientos para moto, Pilares, UT y Utopías |
-| Sociodemográficos | Grado de marginación y AGEB |
+- Delitos: Fiscalía General de Justicia de la CDMX, 2025.
+- Reportes comunitarios: Ni Una Repartidora Menos.
+- Servicios e infraestructura social: biciestacionamientos, centros de justicia, estacionamientos para motocicletas, PILARES, Unidades Territoriales Siempre Vivas y Utopías.
+- Índice de Desarrollo Social: Evalúa CDMX, 2020.
+- Marginación: metodología CONAPO, 2020.
+- Límites de alcaldías: INEGI.
 
-La capa base son los límites de las alcaldías (`09mun`). Las demás capas se activan desde el panel lateral.
+Los archivos geográficos se encuentran en `public/shapefiles/`. Cada capa debe conservar sus archivos asociados.
 
-## Cómo funciona
+## Ejecución
 
-- Aplicación Next.js 14 (React + TypeScript) con mapas en Leaflet.
-- Los shapefiles viven en `public/shapefiles/` y el navegador los lee directamente con `shpjs`. No hay servidor propio ni variables de entorno.
-- Toda la lógica del mapa y la lista de capas está en `components/MapViewer.tsx`.
-- Cada shapefile debe incluir su archivo `.prj`: de ahí se toma la proyección para colocarlo bien en el mapa (por ejemplo, `09mun` no está en latitud/longitud).
-
-## Ejecutar en local
-
-Requiere Node.js 18.17 o superior.
+Requiere Node.js y npm. Configura `NEXT_PUBLIC_CARTO_KEY` con la clave de CARTO en `.env.local` o en el entorno de despliegue.
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-Abre http://localhost:3000. Para probar la versión de producción:
+Para ejecutar la versión de producción:
 
 ```bash
 npm run build
 npm start
 ```
 
-## Actualización automática de los incidentes
+## Actualización
 
-Los incidentes salen del mapa de Google My Maps "Mapa de Riesgos CDMX". Un flujo de GitHub Actions (`.github/workflows/sync-mapa-riesgos.yml`) los mantiene al día:
-
-1. Corre cada 6 horas (hora UTC) o manualmente desde la pestaña **Actions → Run workflow**.
-2. `scripts/kml_to_shapefiles.py` descarga el KML público del mapa y genera cuatro shapefiles en `public/shapefiles/Ni una menos/`.
-3. La alcaldía de cada incidente se calcula por ubicación con los límites de `09mun`.
-
-```
-
-## Datos
-
-- Delitos: Fiscalía General de Justicia de la Ciudad de México.
-- Incidentes: reportes a "Ni Una Repartidora Menos".
-- Límites de alcaldías, AGEB y grado de marginación: INEGI
+Los reportes comunitarios se sincronizan desde Google My Maps mediante una tarea programada cada seis horas. Las demás capas se actualizan sustituyendo sus archivos.

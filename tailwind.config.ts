@@ -12,14 +12,9 @@ const config: Config = {
                 background: "var(--background)",
                 foreground: "var(--foreground)",
                 mapPrimary: "#9D2148",
-                mapSecondary: "#900C3F",
-                mapAccent: "#C70039",
-                mapHighlight: "#FF5733",
-                mapDark: "#1a1b26",
             },
             boxShadow: {
                 'premium': '0 10px 30px -10px rgba(0, 0, 0, 0.15), 0 4px 10px -5px rgba(0, 0, 0, 0.04)',
-                'glass': 'inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
             },
             backgroundImage: {
                 'gradient-premium': 'linear-gradient(135deg, #581845 0%, #900C3F 100%)',

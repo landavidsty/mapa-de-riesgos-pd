@@ -2,9 +2,9 @@ name: Sincronizar Mapa de Riesgos CDMX
 
 on:
   schedule:
-    # cada 6 horas — ajusta la frecuencia si quieres (formato cron estándar)
+    # Sincronización cada seis horas (UTC).
     - cron: "0 */6 * * *"
-  workflow_dispatch: {}   # botón para correrlo manual desde la pestaña "Actions" en GitHub
+  workflow_dispatch: {}   # Ejecución manual.
 
 jobs:
   sync:
@@ -22,7 +22,7 @@ jobs:
       - name: Descargar KML y regenerar las 4 capas de incidentes
         run: python scripts/kml_to_shapefiles.py .
 
-      - name: Commitear si hubo cambios
+      - name: Registrar cambios
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
