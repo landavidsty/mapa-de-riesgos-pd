@@ -370,7 +370,7 @@ export default function MapViewer() {
                                 />
                             </div>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
-                                Las capas de delitos representan registros de Fiscalía. Los incidentes de Ni Una Repartidora Menos son reportes de la comunidad. Los puntos no representan una probabilidad calculada de sufrir un delito.
+                                Fuentes: Fiscalía General de Justicia CDMX, Reportes de incidentes al mapa de Ni Una Repartidora Menos, INEGI, Portal de transparencia CDMX.
                             </p>
                         </div>
                     </div>
