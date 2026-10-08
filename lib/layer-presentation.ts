@@ -68,7 +68,7 @@ export function formatDate(value: unknown): string {
 }
 function originalValue(key: string, value: unknown): string {
     if (isMissing(value)) return "Sin información";
-    // Never group, coerce or truncate geographic, administrative or record keys.
+    // Conserva las claves sin agrupación ni conversión numérica.
     if (/^(cve|clave|id|objectid|fid|ct_|cp$|mun$|loc$|sun_)/i.test(key)) return code(value);
     if (/fecha/i.test(key)) return formatDate(value);
     if (value instanceof Date) return formatDate(value);
@@ -89,16 +89,14 @@ function percentage(value: unknown): string {
     if (isMissing(value)) return "Sin información";
     const parsed = typeof value === "number" ? value : Number(String(value).trim());
     if (!Number.isFinite(parsed)) return "Sin información";
-    // Keep small nonzero percentages visible instead of rounding them to zero.
+    // Conserva los porcentajes pequeños distintos de cero.
     return `${new Intl.NumberFormat("es-MX", {
         minimumFractionDigits: 2,
         maximumFractionDigits: parsed !== 0 && Math.abs(parsed) < 0.01 ? 6 : 2
     }).format(parsed)} %`;
 }
 
-// Only mappings whose meaning AND percentage unit are corroborated in official
-// CONAPO 2020 documentation and the SEMARNAT field dictionary are used here.
-// Indicators without a documented meaning are not included in the popup.
+// Indicadores con definición y unidad documentadas por CONAPO y SEMARNAT.
 const VERIFIED_MARGIN_PERCENTAGES: Record<string, string> = {
     SBASC: "Sin educación básica (15 años o más)",
     OVSDE: "Sin drenaje ni excusado",
@@ -107,7 +105,7 @@ const VERIFIED_MARGIN_PERCENTAGES: Record<string, string> = {
     OVPT: "Piso de tierra"
 };
 
-// Explicit labels prevent undocumented database fields from leaking into details.
+// Campos documentados disponibles en los detalles del registro.
 const DOCUMENTED_DETAILS: Array<[string[], string]> = [
     [["ID_CI"], "Identificador de la carpeta"],
     [["ID", "CLAVE_ID"], "Identificador del registro"],
@@ -122,7 +120,7 @@ const DOCUMENTED_DETAILS: Array<[string[], string]> = [
     [["CALLE_2"], "Calle secundaria"]
 ];
 
-/** Presentation only: no source feature, property, geometry or layer is mutated. */
+/** Genera la ficha sin modificar los datos de origen. */
 export function buildFeaturePopup(id: string, name: string, props: Properties): string {
     const used = new Set<string>();
     const keys = Object.keys(props);

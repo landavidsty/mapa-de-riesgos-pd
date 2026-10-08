@@ -1,22 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import shp from "shpjs";
 import {
-    Layers,
     Map as MapIcon,
     ChevronDown,
-    ChevronRight,
-    Info,
-    Database,
-    Activity,
-    Users,
-    AlertTriangle,
-    Search,
-    X,
-    Filter
+    Search
 } from "lucide-react";
 import L from "leaflet";
 import { buildFeaturePopup, getChoroplethLabel, getCrimePeriod, TEMPORAL_EXPLANATION } from "@/lib/layer-presentation";
@@ -27,12 +18,10 @@ const BASEMAP_URL =
     "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" +
     (CARTO_KEY ? `?key=${CARTO_KEY}` : "");
 
-/** Utility for Tailwind class merging */
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-// --- CONSTANTS ---
 
 const PREDEFINED_COLORS = [
     "#99cc00", "#ff9900", "#339866", "#800080",
@@ -134,7 +123,6 @@ const LAYER_CATEGORIES = [
     }
 ];
 
-// --- HELPER COMPONENTS ---
 
 function Legend({ config }: { config: any }) {
     return (
@@ -157,7 +145,6 @@ function Legend({ config }: { config: any }) {
     );
 }
 
-// --- MAIN COMPONENT ---
 
 export default function MapViewer() {
     const [layers, setLayers] = useState<any[]>([]);
@@ -241,8 +228,7 @@ export default function MapViewer() {
                     data: geojson,
                     color: layerConfig.color || getNextColor(),
                     active: true,
-                    isNew: true,
-                    isUserUpload: false
+                    isNew: true
                 };
                 setLayers(prev => [...prev, loadedLayer]);
             } catch (err) {
@@ -254,7 +240,7 @@ export default function MapViewer() {
         }
     };
 
-    // Compatibility fix for findLast
+    // Selecciona la última capa sociodemográfica activa.
     const getActiveChoroplethLayer = () => {
         for (let i = layers.length - 1; i >= 0; i--) {
             const l = layers[i];
@@ -267,7 +253,6 @@ export default function MapViewer() {
 
     return (
         <div className="flex flex-col h-screen w-full font-inter bg-[#f8f9fa] overflow-hidden">
-            {/* Top Bar */}
             <header className="h-14 bg-[#9D2148] flex items-center justify-between px-6 z-30 shrink-0 shadow-md">
                 <div className="flex items-center gap-4">
                     <div className="bg-white/10 p-1.5 rounded-lg">
@@ -275,12 +260,9 @@ export default function MapViewer() {
                     </div>
                     <span className="text-white font-bold tracking-tight">Visor CDMX</span>
                 </div>
-                <div className="flex items-center gap-4">
-                </div>
             </header>
 
             <div className="flex flex-1 overflow-hidden">
-                {/* Sidebar */}
                 <aside className="w-[360px] bg-white z-20 flex flex-col border-r border-slate-200 h-full overflow-hidden shrink-0">
                     <div className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
                         <h2 className="text-[22px] font-bold text-[#9D2148] mb-6">Menús Disponibles</h2>
@@ -394,7 +376,6 @@ export default function MapViewer() {
                     </div>
                 </aside>
 
-                {/* Map Content */}
                 <main className="flex-1 relative bg-slate-100 overflow-hidden">
                     {loading && (
                         <div className="absolute inset-0 z-[2000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center">
@@ -452,7 +433,7 @@ export default function MapViewer() {
                                         fillColor: layer.color
                                     };
                                 }}
-                                pointToLayer={(feature, latlng) => {
+                                pointToLayer={(_feature, latlng) => {
                                     return L.circleMarker(latlng, {
                                         radius: 6,
                                         fillColor: layer.color,
@@ -472,12 +453,10 @@ export default function MapViewer() {
                         ))}
                     </MapContainer>
 
-                    {/* Legend for Sociodemographic layers */}
                     {layers.filter(l => l.active && CHOROPLETH_CONFIG[l.id]).map(layer => (
                         <Legend key={`legend-${layer.id}`} config={CHOROPLETH_CONFIG[layer.id]} />
                     ))}
 
-                    {/* Top Banner for Sociodemographic titles */}
                     {activeChoropleth && (
                         <div className="absolute top-8 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-2xl px-6 pointer-events-none">
                             <div className="glass-panel text-slate-900 px-8 py-5 rounded-[2rem] shadow-premium border border-white/40 text-center animate-zoom-in">
@@ -489,13 +468,6 @@ export default function MapViewer() {
                         </div>
                     )}
 
-                    {/* Statistics Overlay */}
-                    <div className="absolute bottom-8 left-8 z-[1000] flex gap-3 pointer-events-none">
-                        <div className="glass-panel px-4 py-3 rounded-2xl shadow-premium border border-white/40 flex items-center gap-3">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">Sistema Activo</span>
-                        </div>
-                    </div>
                 </main>
             </div>
         </div>
