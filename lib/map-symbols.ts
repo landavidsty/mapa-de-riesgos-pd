@@ -11,8 +11,8 @@ export function getSymbolKind(id: string): SymbolKind {
 }
 
 export function getSymbolSize(zoom: number, kind: SymbolKind): number {
-    if (kind === "circle" || kind === "triangle") {
-        const size = zoom <= 14 ? 8 : zoom <= 16 ? 7 : 6;
+    if (kind === "circle" || kind === "triangle" || kind === "square") {
+        const size = zoom <= 15 ? 8 : zoom <= 17 ? 7 : 6;
         return size + (kind === "triangle" ? 2 : 0);
     }
     if (zoom <= 11) return 4;
