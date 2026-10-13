@@ -27,12 +27,13 @@ export default function PointLayer({ id, name, color, data, renderer }: Props) {
         let result = icons.get(key);
         if (!result) {
             const visibleSize = size + (active ? 3 : 0);
+            const viewBox = kind === "star" ? "1 1 14 14" : "0 0 16 16";
             result = L.divIcon({
                 className: `map-point-marker${active ? " is-selected" : ""}`,
                 iconSize: [24, 24],
                 iconAnchor: [12, 12],
                 popupAnchor: [0, -visibleSize / 2],
-                html: `<svg aria-hidden="true" width="${visibleSize}" height="${visibleSize}" viewBox="0 0 16 16"><path d="${getSymbolPath(kind)}" fill="${color}" fill-opacity="0.85" stroke="#fff" stroke-width="${active ? 1.5 : size >= 8 ? 0.75 : 0}" /></svg>`
+                html: `<svg aria-hidden="true" width="${visibleSize}" height="${visibleSize}" viewBox="${viewBox}" overflow="visible"><path d="${getSymbolPath(kind)}" fill="${color}" fill-opacity="0.85" stroke="#fff" stroke-width="${active ? 1.5 : size >= 8 ? 0.75 : 0}" /></svg>`
             });
             icons.set(key, result);
         }
