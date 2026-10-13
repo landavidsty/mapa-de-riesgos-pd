@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { MapContainer, TileLayer, GeoJSON, ScaleControl } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, ScaleControl, Pane } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import shp from "shpjs";
 import {
@@ -75,7 +75,7 @@ const LAYER_CATEGORIES = [
                 name: "Delitos contra personas, viviendas y negocios",
                 layers: [
                     { id: "homicidios", name: "Homicidios dolosos", path: "/shapefiles/Delitos/Delitos a personas/Homicidios" },
-                    { id: "robo_casa", name: "Robo a casa habitación con violencia", path: "/shapefiles/Delitos/Delitos a personas/ROBO A CASA HABITACIÓN" },
+                    { id: "robo_casa", name: "Robo a casa habitación con violencia", path: "/shapefiles/Delitos/Delitos a personas/ROBO A CASA HABITACIÓN", color: "#1e40af" },
                     { id: "robo_cuenta", name: "Robo a cuentahabiente", path: "/shapefiles/Delitos/Delitos a personas/ROBO A CUENTAHABIENTE" },
                     { id: "robo_negocio", name: "Robo a negocio con violencia", path: "/shapefiles/Delitos/Delitos a personas/ROBO A NEGOCIO CON VIOLENCIA" },
                     { id: "violaciones", name: "Violaciones", path: "/shapefiles/Delitos/Delitos a personas/VIOLACIONES" }
@@ -243,11 +243,12 @@ export default function MapViewer() {
                 const baseUrl = window.location.origin;
                 const fullPath = baseUrl + encodeURI(layerConfig.path);
                 const geojson = await shp(fullPath);
+                const defaultColor = getNextColor();
                 const loadedLayer = {
                     id: layerConfig.id,
                     name: layerConfig.name,
                     data: geojson,
-                    color: layerConfig.color || getNextColor(),
+                    color: layerConfig.color || defaultColor,
                     active: true,
                     isNew: true
                 };
@@ -323,29 +324,32 @@ export default function MapViewer() {
                             />
                         )}
 
-                        {layers.filter(l => l.active).map(layer => CHOROPLETH_CONFIG[layer.id] ? (
-                            <GeoJSON
-                                key={`${layer.id}-${layer.isNew}`}
-                                data={layer.data}
-                                style={(feature) => {
-                                    const config = CHOROPLETH_CONFIG[layer.id];
-                                    const val = getChoroplethLabel(layer.id, feature?.properties ?? {}, config.column);
-                                    return {
-                                        fillColor: config.mapping[val] || "#ffffff",
-                                        weight: 1,
-                                        opacity: 1,
-                                        color: 'white',
-                                        fillOpacity: 0.8
-                                    };
-                                }}
-                                onEachFeature={(feature, leafletLayer) => {
-                                    leafletLayer.bindPopup(
-                                        buildFeaturePopup(layer.id, layer.name, feature.properties ?? {}),
-                                        { className: "map-feature-popup", minWidth: 240, maxWidth: 360, maxHeight: 420 }
-                                    );
-                                }}
-                            />
-                        ) : (
+                        <Pane name="sociodemographic" style={{ zIndex: 350 }}>
+                            {layers.filter(l => l.active && CHOROPLETH_CONFIG[l.id]).map(layer => (
+                                <GeoJSON
+                                    key={`${layer.id}-${layer.isNew}`}
+                                    data={layer.data}
+                                    style={(feature) => {
+                                        const config = CHOROPLETH_CONFIG[layer.id];
+                                        const val = getChoroplethLabel(layer.id, feature?.properties ?? {}, config.column);
+                                        return {
+                                            fillColor: config.mapping[val] || "#ffffff",
+                                            weight: 1,
+                                            opacity: 1,
+                                            color: 'white',
+                                            fillOpacity: 0.8
+                                        };
+                                    }}
+                                    onEachFeature={(feature, leafletLayer) => {
+                                        leafletLayer.bindPopup(
+                                            buildFeaturePopup(layer.id, layer.name, feature.properties ?? {}),
+                                            { className: "map-feature-popup", minWidth: 240, maxWidth: 360, maxHeight: 420 }
+                                        );
+                                    }}
+                                />
+                            ))}
+                        </Pane>
+                        {layers.filter(l => l.active && !CHOROPLETH_CONFIG[l.id]).map(layer => (
                             <PointLayer key={layer.id} id={layer.id} name={layer.name} color={layer.color} data={layer.data} renderer={pointRenderer} />
                         ))}
                     </MapContainer>

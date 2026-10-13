@@ -32,7 +32,7 @@ export default function PointLayer({ id, name, color, data, renderer }: Props) {
     };
 
     const updatePoint = (point: L.Layer) => {
-        const size = getSymbolSize(map.getZoom());
+        const size = getSymbolSize(map.getZoom(), kind);
         const active = selected.current === point;
         if (point instanceof L.CircleMarker) {
             point.setRadius(size / 2 + (active ? 1.5 : 0));
@@ -51,7 +51,7 @@ export default function PointLayer({ id, name, color, data, renderer }: Props) {
             ref={group}
             data={data}
             pointToLayer={(_feature, latlng) => {
-                const size = getSymbolSize(map.getZoom());
+                const size = getSymbolSize(map.getZoom(), kind);
                 return kind === "circle"
                     ? L.circleMarker(latlng, { renderer, radius: size / 2, fillColor: color, color: "#fff", weight: size >= 8 ? 0.75 : 0, opacity: 1, fillOpacity: 0.85 })
                     : L.marker(latlng, { icon: icon(size, false), title: name, keyboard: true });
