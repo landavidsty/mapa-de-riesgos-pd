@@ -55,7 +55,7 @@ export default function LayerPanel({ categories, query, onQuery, active, colors,
                             <button type="button" className="layer-group-button" aria-expanded={expanded} aria-controls={`group-${category.id}`} onClick={() => onToggleGroup(category.id)}>
                                 <ChevronDown size={15} className={expanded ? "" : "is-collapsed"} aria-hidden="true" />
                                 <span>{category.name}</span>
-                                {count > 0 && <span className="layer-active-count" aria-label={`${count} capas activas`}>{count}</span>}
+                                {count > 0 && <span className="layer-active-count" aria-label={`${count} ${count === 1 ? "capa activa" : "capas activas"}`}>{count}</span>}
                             </button>
                             {expanded && <div id={`group-${category.id}`} className="layer-group-content">
                                 {category.id === "delitos" && <details className="layer-period-note"><summary>Sobre los periodos</summary><p>{TEMPORAL_EXPLANATION}</p></details>}

@@ -1,18 +1,19 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, ScaleControl } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import shp from "shpjs";
 import {
     Map as MapIcon,
-    Layers,
     PanelLeftOpen
 } from "lucide-react";
 import L from "leaflet";
 import { buildFeaturePopup, getChoroplethLabel } from "@/lib/layer-presentation";
 import LayerPanel from "@/components/LayerPanel";
 import PointLayer, { MapResizeObserver } from "@/components/PointLayer";
+import MapNavigation from "@/components/MapNavigation";
+import MapLegend from "@/components/MapLegend";
 const CARTO_KEY = process.env.NEXT_PUBLIC_CARTO_KEY;
 const BASEMAP_URL =
     "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" +
@@ -119,28 +120,6 @@ const LAYER_CATEGORIES = [
 ];
 
 
-function Legend({ config }: { config: any }) {
-    return (
-        <div className="absolute bottom-10 right-10 z-[1000] bg-white p-6 rounded-xl shadow-xl border border-slate-200 font-inter min-w-[200px] animate-slide-in-from-bottom">
-            <h3 className="text-sm font-black text-[#9D2148] mb-5 tracking-tight">{config.legendTitle}</h3>
-            <div className="space-y-4">
-                {Object.entries(config.mapping).map(([label, color]: [string, any]) => {
-                    return (
-                        <div key={label} className="flex items-center gap-4 group cursor-default">
-                            <div
-                                className="w-6 h-6 rounded shadow-sm transition-transform ring-1 ring-black/5"
-                                style={{ backgroundColor: color, border: label === "Sin información" ? "1px solid #94a3b8" : undefined }}
-                            ></div>
-                            <span className="text-sm font-semibold text-[#9D2148] transition-colors">{label}</span>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-}
-
-
 export default function MapViewer() {
     const [layers, setLayers] = useState<any[]>([]);
     const [baseLayer, setBaseLayer] = useState<any>(null);
@@ -170,7 +149,13 @@ export default function MapViewer() {
     const closePanel = () => {
         setMobilePanelOpen(false);
         if (!mobile) setDesktopPanelOpen(false);
-        panelButton.current?.focus();
+        requestAnimationFrame(() => panelButton.current?.focus());
+    };
+
+    const openPanel = () => {
+        if (mobile) setMobilePanelOpen(true);
+        else setDesktopPanelOpen(true);
+        requestAnimationFrame(() => document.getElementById("layer-search")?.focus());
     };
 
     useEffect(() => {
@@ -186,7 +171,7 @@ export default function MapViewer() {
         const panel = document.getElementById("layer-panel");
         document.getElementById("layer-search")?.focus();
         const onKey = (event: KeyboardEvent) => {
-            if (event.key === "Escape") { setMobilePanelOpen(false); panelButton.current?.focus(); }
+            if (event.key === "Escape") { setMobilePanelOpen(false); requestAnimationFrame(() => panelButton.current?.focus()); }
             if (event.key !== "Tab" || !panel) return;
             const controls = Array.from(panel.querySelectorAll<HTMLElement>("button, input, summary")).filter(element => element.getClientRects().length > 0 && !element.hasAttribute("disabled"));
             const first = controls[0], last = controls[controls.length - 1];
@@ -287,6 +272,9 @@ export default function MapViewer() {
     };
 
     const activeChoropleth = getActiveChoroplethLayer();
+    const panelOpen = mobile ? mobilePanelOpen : desktopPanelOpen;
+    const activeLayers = layers.filter(layer => layer.active);
+    const loadingCount = Object.values(pending).filter(Boolean).length;
 
     return (
         <div className="flex flex-col h-screen h-[100dvh] w-full font-inter bg-[#f8f9fa] overflow-hidden">
@@ -295,25 +283,18 @@ export default function MapViewer() {
                     <div className="bg-white/10 p-1.5 rounded-lg">
                         <MapIcon size={18} className="text-white" />
                     </div>
-                    <span className="text-white font-bold tracking-tight">Visor CDMX</span>
+                    <span className="text-white font-semibold tracking-tight">Visor CDMX</span>
                 </div>
-                <button ref={panelButton} type="button" className="map-panel-toggle" aria-controls="layer-panel" aria-expanded={mobile ? mobilePanelOpen : desktopPanelOpen} onClick={() => mobile ? setMobilePanelOpen(value => !value) : setDesktopPanelOpen(value => !value)}>
-                    <span className="hidden md:block"><PanelLeftOpen size={18} /></span><span className="md:hidden"><Layers size={18} /></span><span>Capas</span>
-                </button>
             </header>
 
             <div className="map-workspace flex flex-1 min-h-0 overflow-hidden">
+                {!panelOpen && <button ref={panelButton} type="button" className="layer-reopen-tab" aria-label="Abrir panel de capas" aria-controls="layer-panel" aria-expanded={false} onClick={openPanel}><PanelLeftOpen size={18} aria-hidden="true" /><span>Capas</span></button>}
                 {mobilePanelOpen && <button type="button" className="layer-panel-backdrop" aria-label="Cerrar panel de capas" tabIndex={-1} onClick={closePanel} />}
                 <LayerPanel categories={filteredCategories} query={searchQuery} onQuery={setSearchQuery} active={activePredefined} colors={Object.fromEntries(layers.map(layer => [layer.id, layer.color]))} pending={pending} open={openCategories} onToggleGroup={toggleCategory} onToggleLayer={togglePredefinedLayer} desktopOpen={desktopPanelOpen} mobileOpen={mobilePanelOpen} onClose={closePanel} />
 
                 <main className="flex-1 min-w-0 relative bg-slate-100 overflow-hidden">
                     {loading && (
-                        <div className="absolute inset-0 z-[2000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center">
-                            <div className="bg-white p-8 rounded-[2.5rem] shadow-premium flex flex-col items-center">
-                                <div className="w-12 h-12 border-4 border-mapPrimary border-t-transparent rounded-full animate-spin mb-4"></div>
-                                <p className="text-sm font-bold text-slate-800 uppercase tracking-widest">Cargando Capa...</p>
-                            </div>
-                        </div>
+                        <div className="map-load-notice" role="status"><span className="map-load-spinner" aria-hidden="true" /><span>Cargando {loadingCount === 1 ? "capa" : `${loadingCount} capas`}…</span></div>
                     )}
 
                     <MapContainer
@@ -323,6 +304,8 @@ export default function MapViewer() {
                         zoomControl={false}
                     >
                         <MapResizeObserver />
+                        <MapNavigation />
+                        <ScaleControl position="bottomleft" imperial={false} maxWidth={110} />
                         <TileLayer
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                             url={BASEMAP_URL}
@@ -367,18 +350,12 @@ export default function MapViewer() {
                         ))}
                     </MapContainer>
 
-                    {layers.filter(l => l.active && CHOROPLETH_CONFIG[l.id]).map(layer => (
-                        <Legend key={`legend-${layer.id}`} config={CHOROPLETH_CONFIG[layer.id]} />
-                    ))}
+                    <MapLegend layers={activeLayers} configurations={CHOROPLETH_CONFIG} mobile={mobile} />
 
                     {activeChoropleth && (
-                        <div className="absolute top-8 left-1/2 -translate-x-1/2 z-[1000] w-full max-w-2xl px-6 pointer-events-none">
-                            <div className="glass-panel text-slate-900 px-8 py-5 rounded-[2rem] shadow-premium border border-white/40 text-center animate-zoom-in">
-                                <div className="text-[10px] font-black uppercase tracking-[0.3em] text-mapPrimary mb-1">Capa Activa</div>
-                                <h3 className="text-sm md:text-lg font-black tracking-tight leading-tight">
-                                    {CHOROPLETH_CONFIG[activeChoropleth.id]?.headerTitle}
-                                </h3>
-                            </div>
+                        <div className={`map-active-layer${panelOpen ? "" : " has-reopen-tab"}`}>
+                            <p>Capa activa</p>
+                            <h3 title={CHOROPLETH_CONFIG[activeChoropleth.id]?.headerTitle}>{activeChoropleth.name}</h3>
                         </div>
                     )}
 
