@@ -5,9 +5,9 @@ const COMMUNITY_IDS = new Set(["acoso", "asaltos", "fraudes", "intento_asalto"])
 
 export function getSymbolKind(id: string): SymbolKind {
     if (id === "ageb" || id === "marginacion") return "area";
-    if (SOCIAL_IDS.has(id)) return "square";
-    if (COMMUNITY_IDS.has(id)) return "triangle";
-    return "circle";
+    if (SOCIAL_IDS.has(id)) return "circle";
+    if (COMMUNITY_IDS.has(id)) return "square";
+    return "triangle";
 }
 
 export function getSymbolSize(zoom: number, kind: SymbolKind): number {

@@ -73,7 +73,7 @@ export default function LayerPanel({ categories, query, onQuery, active, colors,
                 })}
             </div>
             <div className="layer-panel-footer">
-                <div className="layer-symbol-key" aria-label="Simbología de las capas"><span><LayerSymbol kind="circle" />Fiscalía</span><span><LayerSymbol kind="triangle" />NURM</span><span><LayerSymbol kind="square" />Servicios</span></div>
+                <div className="layer-symbol-key" aria-label="Simbología de las capas"><span><LayerSymbol kind="triangle" />Fiscalía</span><span><LayerSymbol kind="square" />NURM</span><span><LayerSymbol kind="circle" />Servicios</span></div>
                 <details className="layer-sources"><summary>Fuentes de información</summary><p>Fuentes: Fiscalía General de Justicia CDMX, Reportes de incidentes al mapa de Ni Una Repartidora Menos, INEGI, Portal de transparencia CDMX.</p></details>
             </div>
         </aside>
