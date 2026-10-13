@@ -1,27 +1,22 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import shp from "shpjs";
 import {
     Map as MapIcon,
-    ChevronDown,
-    Search
+    Layers,
+    PanelLeftOpen
 } from "lucide-react";
 import L from "leaflet";
-import { buildFeaturePopup, getChoroplethLabel, getCrimePeriod, TEMPORAL_EXPLANATION } from "@/lib/layer-presentation";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { buildFeaturePopup, getChoroplethLabel } from "@/lib/layer-presentation";
+import LayerPanel from "@/components/LayerPanel";
+import PointLayer, { MapResizeObserver } from "@/components/PointLayer";
 const CARTO_KEY = process.env.NEXT_PUBLIC_CARTO_KEY;
 const BASEMAP_URL =
     "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" +
     (CARTO_KEY ? `?key=${CARTO_KEY}` : "");
-
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
-
 
 const PREDEFINED_COLORS = [
     "#99cc00", "#ff9900", "#339866", "#800080",
@@ -149,7 +144,14 @@ function Legend({ config }: { config: any }) {
 export default function MapViewer() {
     const [layers, setLayers] = useState<any[]>([]);
     const [baseLayer, setBaseLayer] = useState<any>(null);
-    const [loading, setLoading] = useState(false);
+    const [pending, setPending] = useState<Record<string, boolean>>({});
+    const pendingIds = useRef(new Set<string>());
+    const loading = Object.values(pending).some(Boolean);
+    const [desktopPanelOpen, setDesktopPanelOpen] = useState(true);
+    const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
+    const [mobile, setMobile] = useState(false);
+    const panelButton = useRef<HTMLButtonElement>(null);
+    const pointRenderer = useMemo(() => L.canvas({ tolerance: 5 }), []);
     const [searchQuery, setSearchQuery] = useState("");
     const colorIndex = useRef(0);
 
@@ -162,8 +164,38 @@ export default function MapViewer() {
     });
 
     const toggleCategory = (id: string) => {
-        setOpenCategories(prev => ({ ...prev, [id]: !prev[id] }));
+        setOpenCategories(prev => ({ ...prev, [id]: !(prev[id] ?? id.startsWith("delitos_")) }));
     };
+
+    const closePanel = () => {
+        setMobilePanelOpen(false);
+        if (!mobile) setDesktopPanelOpen(false);
+        panelButton.current?.focus();
+    };
+
+    useEffect(() => {
+        const media = window.matchMedia("(max-width: 767px)");
+        const update = () => { setMobile(media.matches); setMobilePanelOpen(false); };
+        update();
+        media.addEventListener("change", update);
+        return () => media.removeEventListener("change", update);
+    }, []);
+
+    useEffect(() => {
+        if (!mobilePanelOpen || !mobile) return;
+        const panel = document.getElementById("layer-panel");
+        document.getElementById("layer-search")?.focus();
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === "Escape") { setMobilePanelOpen(false); panelButton.current?.focus(); }
+            if (event.key !== "Tab" || !panel) return;
+            const controls = Array.from(panel.querySelectorAll<HTMLElement>("button, input, summary")).filter(element => element.getClientRects().length > 0 && !element.hasAttribute("disabled"));
+            const first = controls[0], last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+        };
+        document.addEventListener("keydown", onKey);
+        return () => document.removeEventListener("keydown", onKey);
+    }, [mobilePanelOpen, mobile]);
 
     const getNextColor = () => {
         const c = PREDEFINED_COLORS[colorIndex.current % PREDEFINED_COLORS.length];
@@ -185,15 +217,17 @@ export default function MapViewer() {
         loadDefaults();
     }, []);
 
+    const normalizeSearch = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const query = normalizeSearch(searchQuery.trim());
     const filteredCategories = LAYER_CATEGORIES.map(category => {
         const filteredLayers = category.layers?.filter(l =>
-            l.name.toLowerCase().includes(searchQuery.toLowerCase())
+            normalizeSearch(l.name).includes(query)
         );
 
         const filteredSubcategories = category.subcategories?.map(sub => ({
             ...sub,
             layers: sub.layers.filter(l =>
-                l.name.toLowerCase().includes(searchQuery.toLowerCase())
+                normalizeSearch(l.name).includes(query)
             )
         })).filter(sub => sub.layers.length > 0);
 
@@ -205,9 +239,10 @@ export default function MapViewer() {
             };
         }
         return null;
-    }).filter(Boolean);
+    }).filter((category): category is NonNullable<typeof category> => category !== null);
 
     const togglePredefinedLayer = async (layerConfig: any) => {
+        if (pendingIds.current.has(layerConfig.id)) return;
         const isCurrentlyActive = !!activePredefined[layerConfig.id];
         setActivePredefined(prev => ({ ...prev, [layerConfig.id]: !isCurrentlyActive }));
 
@@ -217,7 +252,8 @@ export default function MapViewer() {
         }
 
         if (!isCurrentlyActive) {
-            setLoading(true);
+            pendingIds.current.add(layerConfig.id);
+            setPending(prev => ({ ...prev, [layerConfig.id]: true }));
             try {
                 const baseUrl = window.location.origin;
                 const fullPath = baseUrl + encodeURI(layerConfig.path);
@@ -235,7 +271,8 @@ export default function MapViewer() {
                 console.error(`Error loading predefined layer ${layerConfig.name}:`, err);
                 setActivePredefined(prev => ({ ...prev, [layerConfig.id]: false }));
             } finally {
-                setLoading(false);
+                pendingIds.current.delete(layerConfig.id);
+                setPending(prev => ({ ...prev, [layerConfig.id]: false }));
             }
         }
     };
@@ -252,131 +289,24 @@ export default function MapViewer() {
     const activeChoropleth = getActiveChoroplethLayer();
 
     return (
-        <div className="flex flex-col h-screen w-full font-inter bg-[#f8f9fa] overflow-hidden">
-            <header className="h-14 bg-[#9D2148] flex items-center justify-between px-6 z-30 shrink-0 shadow-md">
+        <div className="flex flex-col h-screen h-[100dvh] w-full font-inter bg-[#f8f9fa] overflow-hidden">
+            <header className="h-14 bg-[#9D2148] flex items-center justify-between px-4 md:px-6 z-30 shrink-0 shadow-md">
                 <div className="flex items-center gap-4">
                     <div className="bg-white/10 p-1.5 rounded-lg">
                         <MapIcon size={18} className="text-white" />
                     </div>
                     <span className="text-white font-bold tracking-tight">Visor CDMX</span>
                 </div>
+                <button ref={panelButton} type="button" className="map-panel-toggle" aria-controls="layer-panel" aria-expanded={mobile ? mobilePanelOpen : desktopPanelOpen} onClick={() => mobile ? setMobilePanelOpen(value => !value) : setDesktopPanelOpen(value => !value)}>
+                    <span className="hidden md:block"><PanelLeftOpen size={18} /></span><span className="md:hidden"><Layers size={18} /></span><span>Capas</span>
+                </button>
             </header>
 
-            <div className="flex flex-1 overflow-hidden">
-                <aside className="w-[360px] bg-white z-20 flex flex-col border-r border-slate-200 h-full overflow-hidden shrink-0">
-                    <div className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
-                        <h2 className="text-[22px] font-bold text-[#9D2148] mb-6">Menús Disponibles</h2>
+            <div className="map-workspace flex flex-1 min-h-0 overflow-hidden">
+                {mobilePanelOpen && <button type="button" className="layer-panel-backdrop" aria-label="Cerrar panel de capas" tabIndex={-1} onClick={closePanel} />}
+                <LayerPanel categories={filteredCategories} query={searchQuery} onQuery={setSearchQuery} active={activePredefined} colors={Object.fromEntries(layers.map(layer => [layer.id, layer.color]))} pending={pending} open={openCategories} onToggleGroup={toggleCategory} onToggleLayer={togglePredefinedLayer} desktopOpen={desktopPanelOpen} mobileOpen={mobilePanelOpen} onClose={closePanel} />
 
-                        <div className="bg-[#e3f2fd] p-5 rounded-lg mb-8 border border-[#bbdefb]/50">
-                            <p className="text-[15px] text-[#9D2148] font-medium leading-snug">
-                                Seleccione las categorías para visualizar las capas.
-                            </p>
-                        </div>
-
-                        <div className="space-y-4">
-                            {filteredCategories.map((category: any) => (
-                                <div key={category.id} className="group/cat">
-                                    <button
-                                        onClick={() => toggleCategory(category.id)}
-                                        className={cn(
-                                            "w-full flex items-center justify-between p-4 rounded-xl transition-all duration-200 text-left",
-                                            openCategories[category.id]
-                                                ? "bg-slate-50"
-                                                : "hover:bg-slate-50"
-                                        )}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className={cn(
-                                                "transition-transform duration-200",
-                                                openCategories[category.id] ? "rotate-0 text-[#9D2148]" : "-rotate-90 text-slate-400"
-                                            )}>
-                                                <ChevronDown size={16} />
-                                            </div>
-                                            <span className="font-semibold text-[17px] tracking-tight text-[#9D2148]">
-                                                {category.name}
-                                            </span>
-                                        </div>
-                                    </button>
-
-                                    {openCategories[category.id] && (
-                                        <div className="mt-2 ml-4 pl-8 space-y-5 py-2 animate-slide-in-from-top">
-                                            {category.id === "delitos" && <p className="text-xs leading-relaxed text-slate-600">{TEMPORAL_EXPLANATION}</p>}
-                                            {category.layers?.map((layer: any) => (
-                                                <div key={layer.id} className="flex items-center gap-4 group/item cursor-pointer" onClick={() => togglePredefinedLayer(layer)}>
-                                                    <div className={cn(
-                                                        "w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-all",
-                                                        activePredefined[layer.id]
-                                                            ? "bg-[#C70039] border-[#C70039] shadow-sm"
-                                                            : "border-slate-300 group-hover/item:border-slate-400"
-                                                    )}>
-                                                        {activePredefined[layer.id] && (
-                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                                        )}
-                                                    </div>
-                                                    <span className={cn(
-                                                        "text-[15px] font-medium transition-colors",
-                                                        activePredefined[layer.id] ? "text-[#9D2148]" : "text-[#9D2148]/70 group-hover/item:text-[#9D2148]"
-                                                    )}>
-                                                        {layer.name}
-                                                    </span>
-                                                </div>
-                                            ))}
-
-                                            {category.subcategories?.map((sub: any) => (
-                                                <div key={sub.id} className="space-y-4 pt-2">
-                                                    <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest pl-1">{sub.name}</h3>
-                                                    <div className="space-y-5">
-                                                        {sub.layers.map((layer: any) => (
-                                                            <div key={layer.id} className="flex items-center gap-4 group/item cursor-pointer" onClick={() => togglePredefinedLayer(layer)}>
-                                                                <div className={cn(
-                                                                    "w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-all",
-                                                                    activePredefined[layer.id]
-                                                                        ? "bg-[#C70039] border-[#C70039] shadow-sm"
-                                                                        : "border-slate-300 group-hover/item:border-slate-400"
-                                                                )}>
-                                                                    {activePredefined[layer.id] && (
-                                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                                                    )}
-                                                                </div>
-                                                                <span className={cn(
-                                                                    "text-[15px] font-medium transition-colors",
-                                                                    activePredefined[layer.id] ? "text-[#9D2148]" : "text-[#9D2148]/70 group-hover/item:text-[#9D2148]"
-                                                                )}>
-                                                                    {layer.name}
-                                                                    <span className="block mt-1 text-xs font-normal text-slate-500">{getCrimePeriod(layer.id)}</span>
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="p-8 border-t border-slate-100 mt-auto bg-slate-50/50">
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center gap-3">
-                                <Search size={16} className="text-[#9D2148]/40" />
-                                <input
-                                    type="text"
-                                    placeholder="Filtrar capas..."
-                                    className="bg-transparent text-sm font-medium focus:outline-none w-full"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
-                                Fuentes: Fiscalía General de Justicia CDMX, Reportes de incidentes al mapa de Ni Una Repartidora Menos, INEGI, Portal de transparencia CDMX.
-                            </p>
-                        </div>
-                    </div>
-                </aside>
-
-                <main className="flex-1 relative bg-slate-100 overflow-hidden">
+                <main className="flex-1 min-w-0 relative bg-slate-100 overflow-hidden">
                     {loading && (
                         <div className="absolute inset-0 z-[2000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center">
                             <div className="bg-white p-8 rounded-[2.5rem] shadow-premium flex flex-col items-center">
@@ -392,6 +322,7 @@ export default function MapViewer() {
                         className="h-full w-full"
                         zoomControl={false}
                     >
+                        <MapResizeObserver />
                         <TileLayer
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                             url={BASEMAP_URL}
@@ -409,39 +340,20 @@ export default function MapViewer() {
                             />
                         )}
 
-                        {layers.filter(l => l.active).map(layer => (
+                        {layers.filter(l => l.active).map(layer => CHOROPLETH_CONFIG[layer.id] ? (
                             <GeoJSON
                                 key={`${layer.id}-${layer.isNew}`}
                                 data={layer.data}
                                 style={(feature) => {
-                                    if (CHOROPLETH_CONFIG[layer.id]) {
-                                        const config = CHOROPLETH_CONFIG[layer.id];
-                                        const val = getChoroplethLabel(layer.id, feature?.properties ?? {}, config.column);
-                                        return {
-                                            fillColor: config.mapping[val] || "#ffffff",
-                                            weight: 1,
-                                            opacity: 1,
-                                            color: 'white',
-                                            fillOpacity: 0.8
-                                        };
-                                    }
+                                    const config = CHOROPLETH_CONFIG[layer.id];
+                                    const val = getChoroplethLabel(layer.id, feature?.properties ?? {}, config.column);
                                     return {
-                                        color: layer.color,
-                                        weight: 3,
-                                        opacity: 0.8,
-                                        fillOpacity: 0.2,
-                                        fillColor: layer.color
-                                    };
-                                }}
-                                pointToLayer={(_feature, latlng) => {
-                                    return L.circleMarker(latlng, {
-                                        radius: 6,
-                                        fillColor: layer.color,
-                                        color: "#fff",
-                                        weight: 2,
+                                        fillColor: config.mapping[val] || "#ffffff",
+                                        weight: 1,
                                         opacity: 1,
+                                        color: 'white',
                                         fillOpacity: 0.8
-                                    });
+                                    };
                                 }}
                                 onEachFeature={(feature, leafletLayer) => {
                                     leafletLayer.bindPopup(
@@ -450,6 +362,8 @@ export default function MapViewer() {
                                     );
                                 }}
                             />
+                        ) : (
+                            <PointLayer key={layer.id} id={layer.id} name={layer.name} color={layer.color} data={layer.data} renderer={pointRenderer} />
                         ))}
                     </MapContainer>
 
